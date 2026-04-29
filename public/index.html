@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Tramvaje</title>
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Tramvaje">
+  <meta name="theme-color" content="#F2EBD9">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icon.svg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&display=swap">
+
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main id="app">
+    <header>
+      <div class="title">Další tramvaje</div>
+      <time class="clock" id="clock">--:--</time>
+    </header>
+
+    <section class="stops" id="stops" aria-live="polite"></section>
+
+    <section class="weather" id="weather" hidden>
+      <svg class="wx-icon" viewBox="0 0 40 40" aria-hidden="true"></svg>
+      <span class="wx-temp">—</span>
+      <span class="wx-desc"></span>
+      <span class="wx-sep" aria-hidden="true">·</span>
+      <span class="wx-aqi"></span>
+    </section>
+
+    <footer>
+      <span id="updated">načítám…</span>
+    </footer>
+  </main>
+
+  <template id="stop-template">
+    <article class="stop">
+      <svg class="icon" viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="9" y="6" width="22" height="24" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <line x1="11" y1="14" x2="29" y2="14" stroke="currentColor" stroke-width="1.6"/>
+        <circle cx="14" cy="22" r="1.6" fill="currentColor"/>
+        <circle cx="26" cy="22" r="1.6" fill="currentColor"/>
+        <line x1="13" y1="32" x2="11" y2="35" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <line x1="27" y1="32" x2="29" y2="35" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <div class="stop-body">
+        <div class="stop-label"></div>
+        <div class="stop-times">
+          <span class="next-num">—</span>
+          <span class="next-unit">min</span>
+          <span class="next-time"></span>
+          <span class="then">&nbsp;</span>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "Tramvaje",
+  "short_name": "Tramvaje",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#F2EBD9",
+  "theme_color": "#F2EBD9",
+  "start_url": "/",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

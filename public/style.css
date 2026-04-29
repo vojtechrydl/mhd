@@ -1,0 +1,224 @@
+:root {
+  --bg: #F2EBD9;
+  --fg: #0A0A0A;
+  --muted: rgba(10, 10, 10, 0.55);
+  --hint: rgba(10, 10, 10, 0.32);
+  --rule: rgba(10, 10, 10, 0.10);
+  --warn: #B85A3F;
+
+  --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "SF Mono", Menlo, Monaco, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+#app {
+  height: 100%;
+  padding: 5vh 6vw;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Header --- */
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4vh;
+}
+
+.title {
+  font-size: 2vh;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.clock {
+  font-family: var(--font-mono);
+  font-size: 2.4vh;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Stops --- */
+
+.stops {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.stop {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4vw;
+  align-items: center;
+  padding: 2vh 0;
+}
+
+.stop + .stop {
+  border-top: 1px solid var(--rule);
+}
+
+.icon {
+  width: 8vh;
+  height: 8vh;
+  color: var(--fg);
+  flex-shrink: 0;
+}
+
+.stop-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2vh;
+}
+
+.stop-label {
+  font-size: 2.8vh;
+  color: var(--muted);
+  letter-spacing: -0.005em;
+  line-height: 1.25;
+}
+
+.stop-times {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5vw;
+}
+
+.next-num {
+  font-family: var(--font-mono);
+  font-size: 16vh;
+  font-weight: 500;
+  line-height: 0.85;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+
+.next-num.now {
+  font-size: 11vh;
+  letter-spacing: -0.02em;
+}
+
+.next-num.empty {
+  font-size: 6vh;
+  color: var(--hint);
+}
+
+.next-unit {
+  font-size: 4vh;
+  color: var(--muted);
+}
+
+.next-time {
+  font-size: 2.6vh;
+  color: var(--hint);
+  font-variant-numeric: tabular-nums;
+  margin-left: 0.6vw;
+  align-self: center;
+}
+
+.then {
+  margin-left: auto;
+  font-size: 2.6vh;
+  color: var(--hint);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* --- Weather --- */
+
+.weather {
+  display: flex;
+  align-items: center;
+  gap: 1.5vw;
+  padding: 2vh 0;
+  margin-top: 1vh;
+  border-top: 1px solid var(--rule);
+}
+
+.weather[hidden] { display: none; }
+
+.wx-icon {
+  width: 5vh;
+  height: 5vh;
+  color: var(--fg);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.wx-temp {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 4vh;
+  color: var(--fg);
+  letter-spacing: -0.02em;
+}
+
+.wx-desc {
+  font-size: 2.6vh;
+  color: var(--muted);
+}
+
+.wx-sep {
+  color: var(--rule);
+  font-size: 2.6vh;
+}
+
+.wx-aqi {
+  font-size: 2.4vh;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.wx-aqi.bad {
+  color: var(--warn);
+}
+
+/* --- Footer --- */
+
+footer {
+  margin-top: 2vh;
+  text-align: right;
+  font-size: 1.5vh;
+  color: var(--hint);
+  letter-spacing: 0.04em;
+}
+
+footer.stale {
+  color: var(--warn);
+}
+
+/* --- Portrait fallback --- */
+
+@media (orientation: portrait) {
+  .stop {
+    gap: 6vw;
+  }
+  .icon {
+    width: 7vh;
+    height: 7vh;
+  }
+  .next-num { font-size: 14vh; }
+}
