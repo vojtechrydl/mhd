@@ -3,7 +3,7 @@
 const path = require('path');
 const express = require('express');
 
-const { loadGtfs, getNextDepartures } = require('./lib/gtfs');
+const { loadGtfs, getNextDepartures, findStopsByName, normalizeStopName } = require('./lib/gtfs');
 const weather = require('./lib/weather');
 const {
   STOPS,
@@ -33,15 +33,59 @@ async function refreshGtfs() {
 
     console.log('[gtfs] Loaded:', idx.counts);
     for (const s of STOPS) {
-      const platforms = (idx.stopsByName.get(s.stopName) || []).length;
+      const stopMatch = findStopsByName(idx, s.stopName);
+      const platforms = stopMatch.stops.length;
       const routes = (idx.routesByShortName.get(s.routeShortName) || []).length;
+
+      // How many trips on this route actually pass the direction filter at
+      // any of the matched platforms? This is what determines whether the UI
+      // shows "žádný spoj" — the place we want surfaced clearly in logs.
+      let tripsThroughDirection = 0;
+      const routeIds = new Set(
+        (idx.routesByShortName.get(s.routeShortName) || []).map(r => r.route_id)
+      );
+      const headsignNeedle = s.headsignContains ? normalizeStopName(s.headsignContains) : null;
+      const viaNeedle = s.directionVia ? normalizeStopName(s.directionVia) : null;
+      const platformIds = new Set(stopMatch.stops.map(p => p.stop_id));
+
+      for (const trip of idx.tripsById.values()) {
+        if (!routeIds.has(trip.route_id)) continue;
+        // Trip must visit one of our platforms…
+        const tripStops = idx.stopTimesByTrip.get(trip.trip_id) || [];
+        const myIdx = tripStops.findIndex(t => platformIds.has(t.stop_id));
+        if (myIdx === -1) continue;
+        // …and pass the direction filter (matching getNextDepartures' logic).
+        if (headsignNeedle && !normalizeStopName(trip.trip_headsign).includes(headsignNeedle)) continue;
+        if (viaNeedle) {
+          let via = false;
+          for (let i = myIdx + 1; i < tripStops.length; i++) {
+            if (normalizeStopName(idx.stopNameById.get(tripStops[i].stop_id)).includes(viaNeedle)) {
+              via = true; break;
+            }
+          }
+          if (!via) continue;
+        }
+        tripsThroughDirection++;
+      }
+
+      const matchedNote = stopMatch.strategy === 'normalized'
+        ? ` (matched as "${stopMatch.matchedName}" via normalization)`
+        : stopMatch.strategy === 'exact' ? '' : ' (NOT FOUND)';
+
       console.log(
-        `[gtfs] config "${s.id}" → stop "${s.stopName}": ${platforms} platform(s); ` +
-        `route ${s.routeShortName}: ${routes} match(es).`
+        `[gtfs] config "${s.id}" → stop "${s.stopName}"${matchedNote}: ` +
+        `${platforms} platform(s); route ${s.routeShortName}: ${routes} match(es); ` +
+        `trips matching direction filter: ${tripsThroughDirection}.`
       );
       if (platforms === 0) {
         console.warn(`[gtfs] WARNING: stopName "${s.stopName}" not found. ` +
           `Try /api/debug/stops?q=... to find the right name.`);
+      } else if (tripsThroughDirection === 0) {
+        const filt = s.headsignContains
+          ? `headsignContains: "${s.headsignContains}"`
+          : `directionVia: "${s.directionVia}"`;
+        console.warn(`[gtfs] WARNING: 0 trips match direction filter ${filt} ` +
+          `at "${s.stopName}". Try /api/debug/headsigns?route=${s.routeShortName}.`);
       }
     }
   } catch (err) {
