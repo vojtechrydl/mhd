@@ -62,6 +62,40 @@ function fmtCountdown(secondsUntil) {
   return { num: String(min), unit: pluralizeMin(min), min, isNow: false };
 }
 
+// Traffic-light urgency for "next departure":
+//   > 5 min       → green   (plenty of time, can stroll)
+//   3–5 min       → amber   (start moving)
+//   < 3 min       → red     (run, or accept missing it)
+//   "teď"         → red     (already departing)
+function urgencyColor(secondsUntil) {
+  if (secondsUntil < 30) return 'red';        // "teď"
+  const min = Math.ceil(secondsUntil / 60);
+  if (min > 5) return 'green';
+  if (min >= 3) return 'amber';
+  return 'red';
+}
+
+// Same idea for AQI on the European AQI scale (CAMS):
+//   ≤ 40   "velmi dobrá" / "dobrá"        → green
+//   41–60  "středně dobrá"                → amber
+//   > 60   "špatná" and worse             → red
+function aqiColor(aqi) {
+  if (aqi <= 40) return 'green';
+  if (aqi <= 60) return 'amber';
+  return 'red';
+}
+
+function setDot(el, color) {
+  if (!el) return;
+  el.classList.remove('green', 'amber', 'red');
+  if (color) {
+    el.classList.add(color);
+    el.hidden = false;
+  } else {
+    el.hidden = true;
+  }
+}
+
 function renderStop(stop, priority) {
   const tpl = priority === 'primary' ? STOP_TEMPLATE_PRIMARY : STOP_TEMPLATE_SECONDARY;
   const node = tpl.content.cloneNode(true);
@@ -69,6 +103,7 @@ function renderStop(stop, priority) {
   article.dataset.id = stop.id;
   node.querySelector('.stop-label').textContent = stop.label;
 
+  const dotEl = node.querySelector('.dot');
   const numEl = node.querySelector('.next-num');
   const unitEl = node.querySelector('.next-unit');
   const timeEl = node.querySelector('.next-time');
@@ -83,8 +118,11 @@ function renderStop(stop, priority) {
     unitEl.textContent = 'žádný spoj';
     timeEl.textContent = '';
     if (thenEl) thenEl.textContent = '';
+    setDot(dotEl, null);
     return node;
   }
+
+  setDot(dotEl, urgencyColor(next.secondsUntil));
 
   const f = fmtCountdown(next.secondsUntil);
   numEl.textContent = f.num;
@@ -202,13 +240,15 @@ function renderWeather(wx) {
 
   const aqiEl = WEATHER_EL.querySelector('.wx-aqi');
   const sepEl = WEATHER_EL.querySelector('.wx-sep');
+  const dotEl = WEATHER_EL.querySelector('.wx-aqi-dot');
   if (wx.aqi != null) {
     aqiEl.textContent = `AQI ${wx.aqi} · ${wx.aqiLabel}`;
-    aqiEl.classList.toggle('bad', wx.aqi > 60);
+    setDot(dotEl, aqiColor(wx.aqi));
     sepEl.hidden = false;
     aqiEl.hidden = false;
   } else {
     aqiEl.textContent = '';
+    setDot(dotEl, null);
     sepEl.hidden = true;
     aqiEl.hidden = true;
   }
