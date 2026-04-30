@@ -40,8 +40,8 @@
     </footer>
   </main>
 
-  <template id="stop-template">
-    <article class="stop">
+  <template id="stop-template-primary">
+    <article class="stop stop-primary" data-priority="primary">
       <svg class="icon" viewBox="0 0 40 40" aria-hidden="true">
         <rect x="9" y="6" width="22" height="24" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/>
         <line x1="11" y1="14" x2="29" y2="14" stroke="currentColor" stroke-width="1.6"/>
@@ -59,6 +59,26 @@
           <span class="then">&nbsp;</span>
         </div>
       </div>
+    </article>
+  </template>
+
+  <template id="stop-template-secondary">
+    <article class="stop stop-secondary" data-priority="secondary">
+      <svg class="icon" viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="9" y="6" width="22" height="24" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <line x1="11" y1="14" x2="29" y2="14" stroke="currentColor" stroke-width="1.6"/>
+        <circle cx="14" cy="22" r="1.6" fill="currentColor"/>
+        <circle cx="26" cy="22" r="1.6" fill="currentColor"/>
+        <line x1="13" y1="32" x2="11" y2="35" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <line x1="27" y1="32" x2="29" y2="35" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <div class="stop-label"></div>
+      <div class="stop-times">
+        <span class="next-num">—</span>
+        <span class="next-unit">min</span>
+        <span class="next-time"></span>
+      </div>
+      <div class="then">&nbsp;</div>
     </article>
   </template>
 

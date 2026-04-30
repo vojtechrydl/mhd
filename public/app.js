@@ -1,6 +1,7 @@
 'use strict';
 
-const STOP_TEMPLATE = document.getElementById('stop-template');
+const STOP_TEMPLATE_PRIMARY = document.getElementById('stop-template-primary');
+const STOP_TEMPLATE_SECONDARY = document.getElementById('stop-template-secondary');
 const STOPS_EL = document.getElementById('stops');
 const CLOCK_EL = document.getElementById('clock');
 const UPDATED_EL = document.getElementById('updated');
@@ -61,8 +62,9 @@ function fmtCountdown(secondsUntil) {
   return { num: String(min), unit: pluralizeMin(min), min, isNow: false };
 }
 
-function renderStop(stop) {
-  const node = STOP_TEMPLATE.content.cloneNode(true);
+function renderStop(stop, priority) {
+  const tpl = priority === 'primary' ? STOP_TEMPLATE_PRIMARY : STOP_TEMPLATE_SECONDARY;
+  const node = tpl.content.cloneNode(true);
   const article = node.querySelector('.stop');
   article.dataset.id = stop.id;
   node.querySelector('.stop-label').textContent = stop.label;
@@ -80,7 +82,7 @@ function renderStop(stop) {
     numEl.classList.add('empty');
     unitEl.textContent = 'žádný spoj';
     timeEl.textContent = '';
-    thenEl.textContent = '';
+    if (thenEl) thenEl.textContent = '';
     return node;
   }
 
@@ -95,15 +97,22 @@ function renderStop(stop) {
     timeEl.textContent = `· ${next.departureTime}`;
   }
 
-  if (then) {
-    const tf = fmtCountdown(then.secondsUntil);
-    if (tf.isNow) {
-      thenEl.textContent = `pak hned · ${then.departureTime}`;
+  if (thenEl) {
+    if (then) {
+      // Primary: full "pak za 15 min · 20:02".
+      // Secondary: compact "pak 20:02" — minute count is redundant when the
+      // row already exists at small scale.
+      if (priority === 'primary') {
+        const tf = fmtCountdown(then.secondsUntil);
+        thenEl.textContent = tf.isNow
+          ? `pak hned · ${then.departureTime}`
+          : `pak za ${tf.num} min · ${then.departureTime}`;
+      } else {
+        thenEl.textContent = `pak ${then.departureTime}`;
+      }
     } else {
-      thenEl.textContent = `pak za ${tf.num} min · ${then.departureTime}`;
+      thenEl.textContent = '';
     }
-  } else {
-    thenEl.textContent = '';
   }
 
   return node;
@@ -119,9 +128,13 @@ function render(data) {
     return;
   }
 
-  // Build new DOM in a fragment, swap atomically — avoids flicker.
+  // First configured stop is treated as primary, the rest as secondary —
+  // matching the importance hierarchy the user requested.
   const frag = document.createDocumentFragment();
-  for (const stop of data.stops) frag.appendChild(renderStop(stop));
+  data.stops.forEach((stop, i) => {
+    const priority = i === 0 ? 'primary' : 'secondary';
+    frag.appendChild(renderStop(stop, priority));
+  });
   STOPS_EL.replaceChildren(frag);
 }
 

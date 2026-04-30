@@ -66,10 +66,12 @@ exports.STOPS = [
 ];
 ```
 
-Směr jízdy se filtruje jednou ze dvou voleb (vyber tu, která dává smysl):
+Směr jízdy se filtruje jednou ze dvou voleb:
 
-- **`headsignContains`** — substring názvu konečné z `trip_headsign`. Použij, když směr, který chceš, JE konečná.
-- **`directionVia`** — substring názvu libovolné zastávky, kterou spoj projíždí PO té tvojí. Použij, když popisuješ směr přes mezilehlou zastávku. Tramvaj 2 jezdí Skvrňany↔Světovar, takže `trip_headsign` při jízdě "směrem do centra" je "Skvrňany" — ale myslí se tím, že to jede přes Náměstí Republiky. `directionVia: 'náměstí republiky'` to vyřeší.
+- **`directionVia`** — substring názvu libovolné zastávky, kterou spoj projíždí PO té tvojí. **Pro PMDP používej tohle**, protože jejich GTFS feed nevyplňuje `trip_headsign` (všechny tripy mají prázdný headsign).
+- **`headsignContains`** — substring názvu konečné z `trip_headsign`. Funguje pro feedy, které `trip_headsign` skutečně vyplňují. Pro PMDP zatím nepoužívat — vrátí 0 spojů.
+
+Pokud něco nehraje, otevři si `/api/diagnose` v prohlížeči — vrátí kompletní rozpis pro každou zastávku (kolik platforem se našlo, jaké tripy je obsluhují, jaké mají headsigny a downstream zastávky, kolik projde přes filtr).
 
 ## Deploy na Railway
 
