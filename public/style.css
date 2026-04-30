@@ -13,9 +13,11 @@
   --status-red:    #B85A3F;
 
   /* Width of the icon "rail" — the column of icons on the left of every
-   * section. All sections share this so visual icon positions line up
-   * consistently regardless of icon size. */
-  --icon-rail: 11vh;
+   * section. All icons are the same size (5vh), so keeping the rail just a
+   * bit wider gives a small breathing gap between icon and content.
+   * Primary's visual dominance comes from the giant number, not a bigger
+   * icon — making icons uniform is what lets all section icons line up. */
+  --icon-rail: 6vh;
 
   --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-mono: "Geist Mono", "SF Mono", Menlo, Monaco, monospace;
@@ -73,10 +75,14 @@ header {
   grid-template-columns: var(--icon-rail) 1fr;
   align-items: center;
   gap: 1.5vw;
-  padding: 1.6vh 0;
+  padding: 1.8vh 0;
   margin-bottom: 1.5vh;
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
+  /* Amber-tinted background ties the row to the amber bin icon and gives
+   * the alert visual weight without breaking the warm beige palette. The
+   * box-shadow extends the tint horizontally beyond the section so it spans
+   * the full app width, while the content stays aligned with stops/weather. */
+  background: rgba(198, 132, 23, 0.13);
+  box-shadow: -6vw 0 0 rgba(198, 132, 23, 0.13), 6vw 0 0 rgba(198, 132, 23, 0.13);
 }
 
 .alert[hidden] { display: none; }
@@ -125,10 +131,11 @@ header {
 }
 
 .stop-primary .icon {
-  width: 11vh;
-  height: 11vh;
+  width: 5vh;
+  height: 5vh;
   color: var(--fg);
-  /* Fills the rail; left edge sits at column-1 left = section left. */
+  /* Same size as secondary/weather icons so left edges align across sections.
+   * Primary keeps its hierarchy via the giant number and section height. */
   justify-self: start;
 }
 
@@ -336,35 +343,12 @@ header {
   font-variant-numeric: tabular-nums;
 }
 
-/* 12h forecast row: range label · sparkline · max precip */
+/* 12h forecast row: text only, e.g. "12 h: 8–14° · max srážky 20 %" */
 
-.wx-range {
+.wx-fcast {
   font-size: 2vh;
   color: var(--hint);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.wx-spark {
-  flex: 1;
-  height: 3vh;
-  min-width: 12vw;
-  /* SVG paints in fg; opacity tones it down. */
-  color: var(--fg);
-  opacity: 0.7;
-  overflow: visible;
-}
-
-.wx-rain {
-  font-size: 2vh;
-  color: var(--hint);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.wx-rain.wet {
-  color: var(--fg);
-  opacity: 0.7;
 }
 
 /* --- Status dots (urgency + AQI) --- */
