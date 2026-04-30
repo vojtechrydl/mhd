@@ -12,12 +12,13 @@
   --status-amber:  #C68417;
   --status-red:    #B85A3F;
 
-  /* Width of the icon "rail" — the column of icons on the left of every
-   * section. All icons are the same size (5vh), so keeping the rail just a
-   * bit wider gives a small breathing gap between icon and content.
-   * Primary's visual dominance comes from the giant number, not a bigger
-   * icon — making icons uniform is what lets all section icons line up. */
-  --icon-rail: 6vh;
+  /* Width of the icon "rail" — column on the left of every section. Sized
+   * to the largest icon (primary tram, 11vh). Smaller icons (5vh) sit
+   * justify-self:start in the same column, so all visual left edges align —
+   * provided the SVGs use a tight viewBox + xMinYMid so drawing fills from
+   * x=0 regardless of SVG element size. */
+  --icon-rail: 11vh;
+  --icon-rail-sm: 5vh;
 
   --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-mono: "Geist Mono", "SF Mono", Menlo, Monaco, monospace;
@@ -68,6 +69,332 @@ header {
   font-variant-numeric: tabular-nums;
 }
 
+/* --- Alert banner (e.g. take out the trash) --- */
+
+/* Two rail widths: primary has the bigger icon and a wider rail (--icon-rail);
+ * the rest use --icon-rail-sm. Drawing visual left = section left in BOTH
+ * cases because the SVGs use tight viewBox + preserveAspectRatio="xMinYMid".
+ * What differs is where the content (text) starts — primary's content sits
+ * a bit further right because its icon is bigger. That's intentional. */
+
+.alert {
+  display: grid;
+  grid-template-columns: var(--icon-rail-sm) 1fr;
+  align-items: center;
+  gap: 1.5vw;
+  padding: 1.8vh 0;
+  margin-bottom: 1.5vh;
+  background: rgba(198, 132, 23, 0.13);
+  box-shadow: -6vw 0 0 rgba(198, 132, 23, 0.13), 6vw 0 0 rgba(198, 132, 23, 0.13);
+}
+
+.alert[hidden] { display: none; }
+
+.alert-icon {
+  width: 5vh;
+  height: 5vh;
+  color: var(--status-amber);
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* Aligned to start of icon rail so its left edge matches stop/weather icons. */
+  justify-self: start;
+}
+
+.alert-text {
+  font-size: 3vh;
+  color: var(--fg);
+  letter-spacing: -0.005em;
+}
+
+/* --- Stops --- */
+
+/* All sections (stops, weather, alert) share an icon "rail" via grid columns,
+ * so icons of different sizes end up with their LEFT EDGES on the same x.
+ * The rail width is set in :root and matches the largest icon (primary). */
+
+.stops {
+  flex: 5;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* PRIMARY — hero treatment, takes most of the vertical space. */
+
+.stop-primary {
+  flex: 3;
+  display: grid;
+  grid-template-columns: var(--icon-rail) 1fr;
+  gap: 1.5vw;
+  align-items: center;
+  padding: 2vh 0;
+  min-height: 0;
+}
+
+.stop-primary .icon {
+  width: 11vh;
+  height: 11vh;
+  color: var(--fg);
+  /* Tight viewBox (22×29) + preserveAspectRatio="xMinYMid meet" on the SVG
+   * itself means drawing fills the SVG vertically and starts from x=0.
+   * That way drawing visual left = SVG left = column left, regardless of
+   * whether this icon is 11vh (here) or 5vh (secondary/alert). */
+  justify-self: start;
+}
+
+.stop-primary .stop-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5vh;
+}
+
+.stop-primary .stop-label {
+  font-size: 3.4vh;
+  color: var(--muted);
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+}
+
+.stop-primary .stop-times {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5vw;
+}
+
+.stop-primary .next-num {
+  font-family: var(--font-mono);
+  font-size: 21vh;
+  font-weight: 500;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+
+.stop-primary .next-num.now {
+  font-size: 13vh;
+  letter-spacing: -0.02em;
+}
+
+.stop-primary .next-num.empty {
+  font-size: 8vh;
+  color: var(--hint);
+}
+
+.stop-primary .next-unit {
+  font-size: 5.5vh;
+  color: var(--muted);
+}
+
+.stop-primary .next-time {
+  font-size: 3.2vh;
+  color: var(--hint);
+  font-variant-numeric: tabular-nums;
+  margin-left: 0.6vw;
+}
+
+.stop-primary .then {
+  margin-left: auto;
+  font-size: 3vh;
+  color: var(--hint);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* SECONDARY — shares icon rail with primary; right column is a flex row
+ * holding label, times and "then". */
+
+.stop-secondary {
+  flex: 2;
+  display: grid;
+  grid-template-columns: var(--icon-rail-sm) 1fr;
+  gap: 1.5vw;
+  align-items: center;
+  padding: 2.2vh 0;
+  border-top: 1px solid var(--rule);
+  min-height: 0;
+}
+
+.stop-secondary .icon {
+  width: 5vh;
+  height: 5vh;
+  color: var(--fg);
+  justify-self: start;
+}
+
+.stop-secondary .stop-content {
+  display: flex;
+  align-items: baseline;
+  gap: 2vw;
+}
+
+.stop-secondary .stop-label {
+  font-size: 2.8vh;
+  color: var(--muted);
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.stop-secondary .stop-times {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8vw;
+  font-variant-numeric: tabular-nums;
+}
+
+.stop-secondary .next-num {
+  font-family: var(--font-mono);
+  font-size: 5vh;
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+}
+
+.stop-secondary .next-num.empty {
+  color: var(--hint);
+  font-weight: 400;
+}
+
+.stop-secondary .next-unit {
+  font-size: 3vh;
+  color: var(--muted);
+}
+
+.stop-secondary .next-time {
+  font-size: 2.6vh;
+  color: var(--hint);
+  margin-left: 0.4vw;
+}
+
+.stop-secondary .then {
+  margin-left: auto;
+  font-size: 2.6vh;
+  color: var(--hint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --- Weather --- */
+
+.weather {
+  flex: 1;
+  display: grid;
+  grid-template-columns: var(--icon-rail-sm) 1fr;
+  gap: 1.5vw;
+  align-items: center;
+  padding: 2vh 0;
+  margin-top: 1vh;
+  border-top: 1px solid var(--rule);
+  min-height: 0;
+}
+
+.weather[hidden] { display: none; }
+
+.wx-icon {
+  width: 5vh;
+  height: 5vh;
+  color: var(--fg);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  justify-self: start;
+}
+
+.weather-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1vh;
+  min-width: 0;
+}
+
+.weather-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5vw;
+}
+
+.weather-row[hidden] { display: none; }
+
+.wx-temp {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 4vh;
+  color: var(--fg);
+  letter-spacing: -0.02em;
+}
+
+.wx-desc {
+  font-size: 2.6vh;
+  color: var(--muted);
+}
+
+.wx-sep {
+  color: var(--rule);
+  font-size: 2.6vh;
+}
+
+.wx-aqi {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5vw;
+  font-size: 2.4vh;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 12h forecast row: text only, e.g. "12 h: 8–14° · max srážky 20 %" */
+
+.wx-fcast {
+  font-size: 2vh;
+  color: var(--hint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Status dots (urgency + AQI) --- */
+
+.dot {
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--status-green);
+  flex-shrink: 0;
+}
+
+.dot.green { background: var(--status-green); }
+.dot.amber { background: var(--status-amber); }
+.dot.red   { background: var(--status-red); }
+
+.stop-primary   .dot { width: 2vh;   height: 2vh;   margin-right: 1.5vw; }
+.stop-secondary .dot { width: 1.8vh; height: 1.8vh; margin-right: 0.8vw; }
+.weather        .dot { width: 1.4vh; height: 1.4vh; }
+
+/* --- Footer --- */
+
+footer {
+  margin-top: 2vh;
+  text-align: right;
+  font-size: 1.5vh;
+  color: var(--hint);
+  letter-spacing: 0.04em;
+}
+
+footer.stale {
+  color: var(--warn);
+}
+
+/* --- Portrait fallback --- */
+
+@media (orientation: portrait) {
+  .stop-primary { gap: 6vw; }
+  .stop-primary .icon { width: 9vh; height: 9vh; }
+  .stop-primary .next-num { font-size: 22vh; }
+  .stop-secondary { gap: 3.5vw; }
+}
 /* --- Alert banner (e.g. take out the trash) --- */
 
 .alert {
