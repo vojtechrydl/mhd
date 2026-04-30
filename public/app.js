@@ -277,14 +277,32 @@ function renderForecast(h) {
     : `12 h: ${range}`;
 }
 
-// Alert banner — for now always visible (testing). When time-gating is added
-// later, this becomes a function of current time.
+// Alert banner — shown only during the trash-collection prep window.
+//
+// Collection is Tuesday morning, so the bin needs to go out from Monday 16:00
+// at the earliest, until it's emptied (~Tuesday 08:00 to be safe). Outside
+// that window the banner stays hidden and doesn't take any layout space.
 const ALERT_EL = document.getElementById('alert');
 
+function shouldShowTrashAlert(now) {
+  // Test override: append ?alert=1 to the URL to force the banner on, or
+  // ?alert=0 to force it off. Useful while iterating outside the real
+  // Mon 16:00 → Tue 08:00 window.
+  const override = new URLSearchParams(location.search).get('alert');
+  if (override === '1') return true;
+  if (override === '0') return false;
+
+  // getDay(): 0=Sun, 1=Mon, 2=Tue, …
+  // Hours read in the iPad's local time, which for our use is Prague.
+  const day = now.getDay();
+  const hour = now.getHours();
+  if (day === 1 && hour >= 16) return true;  // Monday from 16:00
+  if (day === 2 && hour < 8)   return true;  // Tuesday until 08:00
+  return false;
+}
+
 function renderAlert() {
-  // TEMP: always show "Vyndat popelnici". Phase 2 adds the Mon 16:00 → Tue 08:00
-  // window check here.
-  ALERT_EL.hidden = false;
+  ALERT_EL.hidden = !shouldShowTrashAlert(new Date());
 }
 
 // ---------------------------------------------------------------------------
@@ -326,10 +344,13 @@ document.addEventListener('visibilitychange', () => {
 
 // Minute-rollover smoothing: refresh just after each new minute starts so the
 // big number ticks down in sync with reality even if next poll is 19s away.
+// We also re-evaluate the alert here so the trash banner appears/disappears
+// on its own at the configured boundary times without needing a reload.
 function scheduleMinuteRollover() {
   const now = new Date();
   const ms = (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 250;
   setTimeout(() => {
+    renderAlert();
     fetchDepartures();
     scheduleMinuteRollover();
   }, ms);
