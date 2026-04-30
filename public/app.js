@@ -239,15 +239,16 @@ function renderWeather(wx) {
   WEATHER_EL.querySelector('.wx-desc').textContent = wx.description;
 
   const aqiEl = WEATHER_EL.querySelector('.wx-aqi');
+  const aqiTextEl = WEATHER_EL.querySelector('.wx-aqi-text');
   const sepEl = WEATHER_EL.querySelector('.wx-sep');
   const dotEl = WEATHER_EL.querySelector('.wx-aqi-dot');
   if (wx.aqi != null) {
-    aqiEl.textContent = `AQI ${wx.aqi} · ${wx.aqiLabel}`;
+    aqiTextEl.textContent = `AQI ${wx.aqi} · ${wx.aqiLabel} čistota vzduchu`;
     setDot(dotEl, aqiColor(wx.aqi));
     sepEl.hidden = false;
     aqiEl.hidden = false;
   } else {
-    aqiEl.textContent = '';
+    aqiTextEl.textContent = '';
     setDot(dotEl, null);
     sepEl.hidden = true;
     aqiEl.hidden = true;

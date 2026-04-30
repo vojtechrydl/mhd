@@ -142,7 +142,6 @@ header {
   color: var(--hint);
   font-variant-numeric: tabular-nums;
   margin-left: 0.6vw;
-  align-self: center;
 }
 
 .stop-primary .then {
@@ -158,12 +157,13 @@ header {
 
 /* SECONDARY — single horizontal line: icon · label · time · then */
 
+/* SECONDARY — single horizontal line: [icon] [label] [times] ... [then] */
+
 .stop-secondary {
   flex: 2;
-  display: grid;
-  grid-template-columns: auto 1fr auto auto;
-  gap: 2.5vw;
+  display: flex;
   align-items: center;
+  gap: 2.5vw;
   padding: 2.2vh 0;
   border-top: 1px solid var(--rule);
   min-height: 0;
@@ -182,8 +182,6 @@ header {
   letter-spacing: -0.005em;
   line-height: 1.2;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .stop-secondary .stop-times {
@@ -218,6 +216,7 @@ header {
 }
 
 .stop-secondary .then {
+  margin-left: auto;
   font-size: 2.4vh;
   color: var(--hint);
   font-variant-numeric: tabular-nums;
@@ -270,6 +269,9 @@ header {
 }
 
 .wx-aqi {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5vw;
   font-size: 2.4vh;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -290,7 +292,7 @@ header {
 
 .stop-primary   .dot { width: 2vh;   height: 2vh;   margin-right: 1.5vw; }
 .stop-secondary .dot { width: 1.4vh; height: 1.4vh; margin-right: 0.8vw; }
-.weather        .dot { width: 1.4vh; height: 1.4vh; margin-right: 0.4vw; }
+.weather        .dot { width: 1.4vh; height: 1.4vh; }
 
 /* --- Footer --- */
 
