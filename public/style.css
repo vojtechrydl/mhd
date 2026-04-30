@@ -6,6 +6,12 @@
   --rule: rgba(10, 10, 10, 0.10);
   --warn: #B85A3F;
 
+  /* Status dots — countdown urgency + AQI category. Slightly desaturated to
+   * fit the warm beige palette rather than fight it. */
+  --status-green:  #4F8A3D;
+  --status-amber:  #C68417;
+  --status-red:    #B85A3F;
+
   --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-mono: "Geist Mono", "SF Mono", Menlo, Monaco, monospace;
 }
@@ -57,21 +63,27 @@ header {
 
 /* --- Stops --- */
 
+/* The body splits the available vertical space between primary stop,
+ * secondary stop, and weather in a 3 : 2 : 1 ratio. Header and footer
+ * take their natural height. */
+
 .stops {
-  flex: 1;
+  flex: 5;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 /* PRIMARY — hero treatment, takes most of the vertical space. */
 
 .stop-primary {
-  flex: 1;
+  flex: 3;
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 4vw;
   align-items: center;
   padding: 2vh 0;
+  min-height: 0;
 }
 
 .stop-primary .icon {
@@ -103,7 +115,7 @@ header {
 
 .stop-primary .next-num {
   font-family: var(--font-mono);
-  font-size: 24vh;
+  font-size: 21vh;
   font-weight: 500;
   line-height: 0.9;
   font-variant-numeric: tabular-nums;
@@ -111,7 +123,7 @@ header {
 }
 
 .stop-primary .next-num.now {
-  font-size: 15vh;
+  font-size: 13vh;
   letter-spacing: -0.02em;
 }
 
@@ -139,18 +151,22 @@ header {
   color: var(--hint);
   font-variant-numeric: tabular-nums;
   text-align: right;
-  align-self: center;
+  /* No align-self override — sit on the baseline of .stop-times so it lines
+   * up with the "minut" unit label, not floating up alongside the giant
+   * number. */
 }
 
 /* SECONDARY — single horizontal line: icon · label · time · then */
 
 .stop-secondary {
+  flex: 2;
   display: grid;
   grid-template-columns: auto 1fr auto auto;
   gap: 2.5vw;
   align-items: center;
   padding: 2.2vh 0;
   border-top: 1px solid var(--rule);
+  min-height: 0;
 }
 
 .stop-secondary .icon {
@@ -211,12 +227,14 @@ header {
 /* --- Weather --- */
 
 .weather {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 1.5vw;
   padding: 2vh 0;
   margin-top: 1vh;
   border-top: 1px solid var(--rule);
+  min-height: 0;
 }
 
 .weather[hidden] { display: none; }
@@ -257,9 +275,22 @@ header {
   font-variant-numeric: tabular-nums;
 }
 
-.wx-aqi.bad {
-  color: var(--warn);
+/* --- Status dots (urgency + AQI) --- */
+
+.dot {
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--status-green);
+  flex-shrink: 0;
 }
+
+.dot.green { background: var(--status-green); }
+.dot.amber { background: var(--status-amber); }
+.dot.red   { background: var(--status-red); }
+
+.stop-primary   .dot { width: 2vh;   height: 2vh;   margin-right: 1.5vw; }
+.stop-secondary .dot { width: 1.4vh; height: 1.4vh; margin-right: 0.8vw; }
+.weather        .dot { width: 1.4vh; height: 1.4vh; margin-right: 0.4vw; }
 
 /* --- Footer --- */
 
