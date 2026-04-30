@@ -252,85 +252,29 @@ function renderWeather(wx) {
   renderForecast(wx.hourly);
 }
 
-// 12h forecast row: "3–9°  [sparkline]  ☔ 20 %"
+// 12h forecast row: e.g. "12 h: 8–14° · max srážky 20 %"
 function renderForecast(h) {
   const fcastEl = WEATHER_EL.querySelector('.weather-forecast');
+  const textEl = fcastEl.querySelector('.wx-fcast');
   if (!h || !h.points || h.points.length < 2) {
     fcastEl.hidden = true;
     return;
   }
   fcastEl.hidden = false;
 
-  const rangeEl = fcastEl.querySelector('.wx-range');
-  rangeEl.textContent = h.tempMin === h.tempMax
-    ? `${h.tempMin}°`
-    : `${h.tempMin}–${h.tempMax}°`;
-
-  const sparkEl = fcastEl.querySelector('.wx-spark');
-  sparkEl.innerHTML = buildSparkline(h.points);
-
-  const rainEl = fcastEl.querySelector('.wx-rain');
+  const range = h.tempMin === h.tempMax ? `${h.tempMin}°` : `${h.tempMin}–${h.tempMax}°`;
+  let rain;
   if (h.precipMaxPct == null) {
-    rainEl.textContent = '';
-    rainEl.classList.remove('wet');
+    rain = null;
   } else if (h.precipMaxPct === 0) {
-    rainEl.textContent = 'bez srážek';
-    rainEl.classList.remove('wet');
+    rain = 'bez srážek';
   } else {
-    rainEl.textContent = `max srážky ${h.precipMaxPct} %`;
-    // Highlight when rain actually likely.
-    rainEl.classList.toggle('wet', h.precipMaxPct >= 30);
-  }
-}
-
-// Build an SVG <path> covering the next 12 hours' temperature curve, mapped
-// into the parent SVG's 100×20 viewBox. We draw a small filled area below the
-// line for visual weight, plus the line itself on top. Hours where temp data
-// is missing are skipped (line breaks).
-function buildSparkline(points) {
-  const W = 100, H = 20, PAD = 1;
-  const temps = points.map(p => p.tempC).filter(v => typeof v === 'number');
-  if (temps.length < 2) return '';
-
-  const tMin = Math.min(...temps);
-  const tMax = Math.max(...temps);
-  const range = Math.max(1, tMax - tMin); // avoid div-by-zero on flat curves
-
-  const xs = points.map((_, i) => PAD + (i / (points.length - 1)) * (W - 2 * PAD));
-  const ys = points.map(p =>
-    typeof p.tempC === 'number'
-      ? PAD + (1 - (p.tempC - tMin) / range) * (H - 2 * PAD)
-      : null
-  );
-
-  // Line path: skip nulls with M/L breaks.
-  let line = '';
-  let pen = 'M';
-  for (let i = 0; i < xs.length; i++) {
-    if (ys[i] == null) { pen = 'M'; continue; }
-    line += `${pen}${xs[i].toFixed(2)} ${ys[i].toFixed(2)} `;
-    pen = 'L';
+    rain = `max srážky ${h.precipMaxPct} %`;
   }
 
-  // Area path: same shape, closed at bottom for a fill.
-  let area = '';
-  let firstX = null, lastX = null;
-  pen = 'M';
-  for (let i = 0; i < xs.length; i++) {
-    if (ys[i] == null) continue;
-    if (firstX == null) firstX = xs[i];
-    lastX = xs[i];
-    area += `${pen}${xs[i].toFixed(2)} ${ys[i].toFixed(2)} `;
-    pen = 'L';
-  }
-  if (firstX != null) {
-    area += `L${lastX.toFixed(2)} ${H} L${firstX.toFixed(2)} ${H} Z`;
-  }
-
-  return `
-    <path d="${area}" fill="currentColor" fill-opacity="0.15" stroke="none"/>
-    <path d="${line.trim()}" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
-  `;
+  textEl.textContent = rain
+    ? `12 h: ${range}  ·  ${rain}`
+    : `12 h: ${range}`;
 }
 
 // Alert banner — for now always visible (testing). When time-gating is added
