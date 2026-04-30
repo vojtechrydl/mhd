@@ -223,7 +223,17 @@ function pickWxIcon(code) {
 
 function renderWeather(wx) {
   if (!wx) {
-    WEATHER_EL.hidden = true;
+    // Don't hide the whole section silently — show a placeholder so the row
+    // still occupies space and the user knows weather is unavailable rather
+    // than thinking it's a layout bug. The actual reason (network error,
+    // boot lag, etc.) is in the server log.
+    WEATHER_EL.hidden = false;
+    WEATHER_EL.querySelector('.wx-icon').innerHTML = '';
+    WEATHER_EL.querySelector('.wx-temp').textContent = '—';
+    WEATHER_EL.querySelector('.wx-desc').textContent = 'počasí nedostupné';
+    WEATHER_EL.querySelector('.wx-aqi').hidden = true;
+    WEATHER_EL.querySelector('.wx-sep').hidden = true;
+    WEATHER_EL.querySelector('.weather-forecast').hidden = true;
     return;
   }
   WEATHER_EL.hidden = false;
