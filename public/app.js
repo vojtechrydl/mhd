@@ -137,17 +137,12 @@ function renderStop(stop, priority) {
 
   if (thenEl) {
     if (then) {
-      // Primary: full "pak za 15 min · 20:02".
-      // Secondary: compact "pak 20:02" — minute count is redundant when the
-      // row already exists at small scale.
-      if (priority === 'primary') {
-        const tf = fmtCountdown(then.secondsUntil);
-        thenEl.textContent = tf.isNow
-          ? `pak hned · ${then.departureTime}`
-          : `pak za ${tf.num} min · ${then.departureTime}`;
-      } else {
-        thenEl.textContent = `pak ${then.departureTime}`;
-      }
+      // Both primary and secondary now use the same "pak za X min · HH:MM"
+      // format — easier to scan than the abbreviated "pak HH:MM" we had.
+      const tf = fmtCountdown(then.secondsUntil);
+      thenEl.textContent = tf.isNow
+        ? `pak hned · ${then.departureTime}`
+        : `pak za ${tf.num} min · ${then.departureTime}`;
     } else {
       thenEl.textContent = '';
     }
@@ -253,6 +248,99 @@ function renderWeather(wx) {
     sepEl.hidden = true;
     aqiEl.hidden = true;
   }
+
+  renderForecast(wx.hourly);
+}
+
+// 12h forecast row: "3–9°  [sparkline]  ☔ 20 %"
+function renderForecast(h) {
+  const fcastEl = WEATHER_EL.querySelector('.weather-forecast');
+  if (!h || !h.points || h.points.length < 2) {
+    fcastEl.hidden = true;
+    return;
+  }
+  fcastEl.hidden = false;
+
+  const rangeEl = fcastEl.querySelector('.wx-range');
+  rangeEl.textContent = h.tempMin === h.tempMax
+    ? `${h.tempMin}°`
+    : `${h.tempMin}–${h.tempMax}°`;
+
+  const sparkEl = fcastEl.querySelector('.wx-spark');
+  sparkEl.innerHTML = buildSparkline(h.points);
+
+  const rainEl = fcastEl.querySelector('.wx-rain');
+  if (h.precipMaxPct == null) {
+    rainEl.textContent = '';
+    rainEl.classList.remove('wet');
+  } else if (h.precipMaxPct === 0) {
+    rainEl.textContent = 'bez srážek';
+    rainEl.classList.remove('wet');
+  } else {
+    rainEl.textContent = `max srážky ${h.precipMaxPct} %`;
+    // Highlight when rain actually likely.
+    rainEl.classList.toggle('wet', h.precipMaxPct >= 30);
+  }
+}
+
+// Build an SVG <path> covering the next 12 hours' temperature curve, mapped
+// into the parent SVG's 100×20 viewBox. We draw a small filled area below the
+// line for visual weight, plus the line itself on top. Hours where temp data
+// is missing are skipped (line breaks).
+function buildSparkline(points) {
+  const W = 100, H = 20, PAD = 1;
+  const temps = points.map(p => p.tempC).filter(v => typeof v === 'number');
+  if (temps.length < 2) return '';
+
+  const tMin = Math.min(...temps);
+  const tMax = Math.max(...temps);
+  const range = Math.max(1, tMax - tMin); // avoid div-by-zero on flat curves
+
+  const xs = points.map((_, i) => PAD + (i / (points.length - 1)) * (W - 2 * PAD));
+  const ys = points.map(p =>
+    typeof p.tempC === 'number'
+      ? PAD + (1 - (p.tempC - tMin) / range) * (H - 2 * PAD)
+      : null
+  );
+
+  // Line path: skip nulls with M/L breaks.
+  let line = '';
+  let pen = 'M';
+  for (let i = 0; i < xs.length; i++) {
+    if (ys[i] == null) { pen = 'M'; continue; }
+    line += `${pen}${xs[i].toFixed(2)} ${ys[i].toFixed(2)} `;
+    pen = 'L';
+  }
+
+  // Area path: same shape, closed at bottom for a fill.
+  let area = '';
+  let firstX = null, lastX = null;
+  pen = 'M';
+  for (let i = 0; i < xs.length; i++) {
+    if (ys[i] == null) continue;
+    if (firstX == null) firstX = xs[i];
+    lastX = xs[i];
+    area += `${pen}${xs[i].toFixed(2)} ${ys[i].toFixed(2)} `;
+    pen = 'L';
+  }
+  if (firstX != null) {
+    area += `L${lastX.toFixed(2)} ${H} L${firstX.toFixed(2)} ${H} Z`;
+  }
+
+  return `
+    <path d="${area}" fill="currentColor" fill-opacity="0.15" stroke="none"/>
+    <path d="${line.trim()}" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+  `;
+}
+
+// Alert banner — for now always visible (testing). When time-gating is added
+// later, this becomes a function of current time.
+const ALERT_EL = document.getElementById('alert');
+
+function renderAlert() {
+  // TEMP: always show "Vyndat popelnici". Phase 2 adds the Mon 16:00 → Tue 08:00
+  // window check here.
+  ALERT_EL.hidden = false;
 }
 
 // ---------------------------------------------------------------------------
@@ -283,6 +371,7 @@ async function fetchDepartures() {
 }
 
 // Initial + periodic
+renderAlert();
 fetchDepartures();
 setInterval(fetchDepartures, REFRESH_MS);
 

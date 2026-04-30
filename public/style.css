@@ -12,6 +12,11 @@
   --status-amber:  #C68417;
   --status-red:    #B85A3F;
 
+  /* Width of the icon "rail" — the column of icons on the left of every
+   * section. All sections share this so visual icon positions line up
+   * consistently regardless of icon size. */
+  --icon-rail: 11vh;
+
   --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-mono: "Geist Mono", "SF Mono", Menlo, Monaco, monospace;
 }
@@ -61,11 +66,44 @@ header {
   font-variant-numeric: tabular-nums;
 }
 
+/* --- Alert banner (e.g. take out the trash) --- */
+
+.alert {
+  display: grid;
+  grid-template-columns: var(--icon-rail) 1fr;
+  align-items: center;
+  gap: 1.5vw;
+  padding: 1.6vh 0;
+  margin-bottom: 1.5vh;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.alert[hidden] { display: none; }
+
+.alert-icon {
+  width: 5vh;
+  height: 5vh;
+  color: var(--status-amber);
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* Aligned to start of icon rail so its left edge matches stop/weather icons. */
+  justify-self: start;
+}
+
+.alert-text {
+  font-size: 3vh;
+  color: var(--fg);
+  letter-spacing: -0.005em;
+}
+
 /* --- Stops --- */
 
-/* The body splits the available vertical space between primary stop,
- * secondary stop, and weather in a 3 : 2 : 1 ratio. Header and footer
- * take their natural height. */
+/* All sections (stops, weather, alert) share an icon "rail" via grid columns,
+ * so icons of different sizes end up with their LEFT EDGES on the same x.
+ * The rail width is set in :root and matches the largest icon (primary). */
 
 .stops {
   flex: 5;
@@ -79,8 +117,8 @@ header {
 .stop-primary {
   flex: 3;
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4vw;
+  grid-template-columns: var(--icon-rail) 1fr;
+  gap: 1.5vw;
   align-items: center;
   padding: 2vh 0;
   min-height: 0;
@@ -90,7 +128,8 @@ header {
   width: 11vh;
   height: 11vh;
   color: var(--fg);
-  flex-shrink: 0;
+  /* Fills the rail; left edge sits at column-1 left = section left. */
+  justify-self: start;
 }
 
 .stop-primary .stop-body {
@@ -150,20 +189,17 @@ header {
   color: var(--hint);
   font-variant-numeric: tabular-nums;
   text-align: right;
-  /* No align-self override — sit on the baseline of .stop-times so it lines
-   * up with the "minut" unit label, not floating up alongside the giant
-   * number. */
 }
 
-/* SECONDARY — single horizontal line: icon · label · time · then */
-
-/* SECONDARY — single horizontal line: [icon] [label] [times] ... [then] */
+/* SECONDARY — shares icon rail with primary; right column is a flex row
+ * holding label, times and "then". */
 
 .stop-secondary {
   flex: 2;
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--icon-rail) 1fr;
+  gap: 1.5vw;
   align-items: center;
-  gap: 2.5vw;
   padding: 2.2vh 0;
   border-top: 1px solid var(--rule);
   min-height: 0;
@@ -173,7 +209,13 @@ header {
   width: 5vh;
   height: 5vh;
   color: var(--fg);
-  flex-shrink: 0;
+  justify-self: start;
+}
+
+.stop-secondary .stop-content {
+  display: flex;
+  align-items: baseline;
+  gap: 2vw;
 }
 
 .stop-secondary .stop-label {
@@ -193,9 +235,10 @@ header {
 
 .stop-secondary .next-num {
   font-family: var(--font-mono);
-  font-size: 3.4vh;
+  font-size: 5vh;
   font-weight: 500;
-  letter-spacing: -0.01em;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
   color: var(--fg);
 }
 
@@ -205,7 +248,7 @@ header {
 }
 
 .stop-secondary .next-unit {
-  font-size: 2.8vh;
+  font-size: 3vh;
   color: var(--muted);
 }
 
@@ -217,7 +260,7 @@ header {
 
 .stop-secondary .then {
   margin-left: auto;
-  font-size: 2.4vh;
+  font-size: 2.6vh;
   color: var(--hint);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -227,9 +270,10 @@ header {
 
 .weather {
   flex: 1;
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: var(--icon-rail) 1fr;
   gap: 1.5vw;
+  align-items: center;
   padding: 2vh 0;
   margin-top: 1vh;
   border-top: 1px solid var(--rule);
@@ -247,8 +291,23 @@ header {
   stroke-width: 1.6;
   stroke-linecap: round;
   stroke-linejoin: round;
-  flex-shrink: 0;
+  justify-self: start;
 }
+
+.weather-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1vh;
+  min-width: 0;
+}
+
+.weather-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5vw;
+}
+
+.weather-row[hidden] { display: none; }
 
 .wx-temp {
   font-family: var(--font-mono);
@@ -277,6 +336,37 @@ header {
   font-variant-numeric: tabular-nums;
 }
 
+/* 12h forecast row: range label · sparkline · max precip */
+
+.wx-range {
+  font-size: 2vh;
+  color: var(--hint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.wx-spark {
+  flex: 1;
+  height: 3vh;
+  min-width: 12vw;
+  /* SVG paints in fg; opacity tones it down. */
+  color: var(--fg);
+  opacity: 0.7;
+  overflow: visible;
+}
+
+.wx-rain {
+  font-size: 2vh;
+  color: var(--hint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.wx-rain.wet {
+  color: var(--fg);
+  opacity: 0.7;
+}
+
 /* --- Status dots (urgency + AQI) --- */
 
 .dot {
@@ -291,7 +381,7 @@ header {
 .dot.red   { background: var(--status-red); }
 
 .stop-primary   .dot { width: 2vh;   height: 2vh;   margin-right: 1.5vw; }
-.stop-secondary .dot { width: 1.4vh; height: 1.4vh; margin-right: 0.8vw; }
+.stop-secondary .dot { width: 1.8vh; height: 1.8vh; margin-right: 0.8vw; }
 .weather        .dot { width: 1.4vh; height: 1.4vh; }
 
 /* --- Footer --- */

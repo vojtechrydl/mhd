@@ -25,17 +25,38 @@
       <time class="clock" id="clock">--:--</time>
     </header>
 
+    <section class="alert" id="alert" hidden>
+      <svg class="alert-icon" viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M10 13 L13 35 L27 35 L30 13 Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        <line x1="8" y1="13" x2="32" y2="13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M16 9 L24 9 L25 13 L15 13 Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        <line x1="17" y1="19" x2="17" y2="29" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="20" y1="19" x2="20" y2="29" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="23" y1="19" x2="23" y2="29" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      <span class="alert-text">Vyndat popelnici</span>
+    </section>
+
     <section class="stops" id="stops" aria-live="polite"></section>
 
     <section class="weather" id="weather" hidden>
       <svg class="wx-icon" viewBox="0 0 40 40" aria-hidden="true"></svg>
-      <span class="wx-temp">—</span>
-      <span class="wx-desc"></span>
-      <span class="wx-sep" aria-hidden="true">·</span>
-      <span class="wx-aqi">
-        <span class="dot wx-aqi-dot" hidden></span>
-        <span class="wx-aqi-text"></span>
-      </span>
+      <div class="weather-content">
+        <div class="weather-row weather-current">
+          <span class="wx-temp">—</span>
+          <span class="wx-desc"></span>
+          <span class="wx-sep" aria-hidden="true">·</span>
+          <span class="wx-aqi">
+            <span class="dot wx-aqi-dot" hidden></span>
+            <span class="wx-aqi-text"></span>
+          </span>
+        </div>
+        <div class="weather-row weather-forecast" hidden>
+          <span class="wx-range"></span>
+          <svg class="wx-spark" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <span class="wx-rain"></span>
+        </div>
+      </div>
     </section>
 
     <footer>
@@ -76,14 +97,16 @@
         <line x1="13" y1="32" x2="11" y2="35" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
         <line x1="27" y1="32" x2="29" y2="35" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
       </svg>
-      <div class="stop-label"></div>
-      <div class="stop-times">
-        <span class="dot" hidden></span>
-        <span class="next-num">—</span>
-        <span class="next-unit">min</span>
-        <span class="next-time"></span>
+      <div class="stop-content">
+        <div class="stop-label"></div>
+        <div class="stop-times">
+          <span class="dot" hidden></span>
+          <span class="next-num">—</span>
+          <span class="next-unit">min</span>
+          <span class="next-time"></span>
+        </div>
+        <div class="then">&nbsp;</div>
       </div>
-      <div class="then">&nbsp;</div>
     </article>
   </template>
 
