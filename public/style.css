@@ -16,7 +16,9 @@
    * to the largest icon (primary tram, 11vh). Smaller icons (5vh) sit
    * justify-self:start in the same column, so all visual left edges align —
    * provided the SVGs use a tight viewBox + xMinYMid so drawing fills from
-   * x=0 regardless of SVG element size. */
+   * x=0 regardless of SVG element size.
+   *
+   * On portrait phones we keep the same layout but slightly smaller. */
   --icon-rail: 11vh;
   --icon-rail-sm: 5vh;
 
@@ -40,7 +42,14 @@ body {
 
 #app {
   height: 100%;
-  padding: 5vh 6vw;
+  /* Default padding plus safe-area insets so iPhone notch and home indicator
+   * don't clip content. Insets are 0 on iPad / desktop, so this is a no-op
+   * there. */
+  padding:
+    calc(5vh + env(safe-area-inset-top))
+    calc(6vw + env(safe-area-inset-right))
+    calc(5vh + env(safe-area-inset-bottom))
+    calc(6vw + env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
 }
@@ -398,3 +407,147 @@ footer.stale {
  * landscape and portrait without hidden surprises (the previous portrait
  * fallback was silently shrinking the primary icon, which made the screen
  * inconsistent depending on iPad rotation). */
+
+/* --- Portrait phone layout ---
+ *
+ * On narrow portrait viewports (phones, narrow windows) we restructure:
+ *   - Section padding shrinks (vh on a tall narrow screen makes vertical
+ *     space cheap and horizontal space scarce)
+ *   - Primary icon scales by viewport width, not height, so it doesn't
+ *     overshoot on tall phones
+ *   - Primary number caps at a sane size — 21vh on a 900px-tall phone is
+ *     189px, way too big
+ *   - Secondary stops stack: label above, times below (was a single row;
+ *     can't fit on ~390px wide)
+ *   - Weather row stacks too, becoming three short lines instead of two
+ *     long wrapping ones
+ *
+ * Trigger: aspect ratio <= 1 (portrait) AND width <= 600px. Tablets in
+ * portrait keep the landscape layout — they're tall but wide enough. */
+
+@media (max-aspect-ratio: 1/1) and (max-width: 600px) {
+  :root {
+    /* Smaller rails — phone width can't afford 11vh (often >80px) of
+     * left-margin before content starts. */
+    --icon-rail: 7vh;
+    --icon-rail-sm: 4vh;
+  }
+
+  #app {
+    padding:
+      calc(3vh + env(safe-area-inset-top))
+      calc(5vw + env(safe-area-inset-right))
+      calc(3vh + env(safe-area-inset-bottom))
+      calc(5vw + env(safe-area-inset-left));
+  }
+
+  header {
+    margin-bottom: 2vh;
+  }
+
+  /* PRIMARY on phone: keep hierarchy but bring number under control. */
+  .stop-primary {
+    gap: 4vw;
+    padding: 1vh 0;
+  }
+  .stop-primary .icon {
+    width: 7vh;
+    height: 7vh;
+  }
+  .stop-primary .stop-label {
+    font-size: 2.6vh;
+  }
+  .stop-primary .next-num {
+    /* Cap at min(13vh, 22vw) so the number scales with whichever dimension
+     * is more constrained — on a tall thin phone, width wins. */
+    font-size: min(13vh, 22vw);
+  }
+  .stop-primary .next-num.now {
+    font-size: min(8vh, 14vw);
+  }
+  .stop-primary .next-unit {
+    font-size: min(4vh, 7vw);
+  }
+  .stop-primary .next-time,
+  .stop-primary .then {
+    font-size: 2.2vh;
+  }
+  .stop-primary .stop-times {
+    flex-wrap: wrap;
+  }
+
+  /* SECONDARY on phone: stack the row vertically. Label above, then a
+   * smaller times row, then "then" — three lines instead of one wrapping
+   * mess. Label still takes full row width. */
+  .stop-secondary {
+    gap: 3vw;
+    padding: 1.5vh 0;
+    align-items: start;
+  }
+  .stop-secondary .icon {
+    width: 4vh;
+    height: 4vh;
+    margin-top: 0.5vh;
+  }
+  .stop-secondary .stop-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4vh;
+  }
+  .stop-secondary .stop-label {
+    font-size: 2.3vh;
+    white-space: normal;
+  }
+  .stop-secondary .next-num {
+    font-size: 4.5vh;
+  }
+  .stop-secondary .next-unit {
+    font-size: 2.4vh;
+  }
+  .stop-secondary .next-time {
+    font-size: 2vh;
+  }
+  .stop-secondary .then {
+    /* Was margin-left:auto pushing it to the right edge; in stacked column
+     * mode just sit on its own line under the times. */
+    margin-left: 0;
+    font-size: 1.9vh;
+  }
+
+  /* WEATHER on phone: stack rows tighter. */
+  .weather {
+    gap: 3vw;
+    padding: 1.5vh 0;
+  }
+  .wx-icon {
+    width: 4vh;
+    height: 4vh;
+  }
+  .weather-row {
+    flex-wrap: wrap;
+    gap: 1.5vw;
+  }
+  .wx-temp { font-size: 3.2vh; }
+  .wx-desc, .wx-aqi { font-size: 2vh; }
+  .wx-fcast { font-size: 1.7vh; }
+
+  /* HEADER: smaller chrome on phone. */
+  .title { font-size: 1.6vh; }
+  .clock { font-size: 2vh; }
+
+  /* ALERT: tighten padding, smaller icon. */
+  .alert {
+    padding: 1.2vh 0;
+    gap: 3vw;
+  }
+  .alert-icon {
+    width: 4vh;
+    height: 4vh;
+  }
+  .alert-text {
+    font-size: 2.4vh;
+  }
+
+  /* FOOTER */
+  footer { font-size: 1.6vh; }
+}
