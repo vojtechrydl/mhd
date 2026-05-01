@@ -475,6 +475,14 @@ footer.stale {
   .stop-primary .stop-times {
     flex-wrap: wrap;
   }
+  .stop-primary .then {
+    /* Override desktop's margin-left:auto — on phone the row already wraps,
+     * and flex-basis:100% forces "pak za..." onto its own line at the left,
+     * matching how secondary stacks. */
+    margin-left: 0;
+    flex-basis: 100%;
+    text-align: left;
+  }
 
   /* SECONDARY on phone: stack the row vertically. Label above, then a
    * smaller times row, then "then" — three lines instead of one wrapping
