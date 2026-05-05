@@ -389,6 +389,68 @@ header {
 .stop-secondary .dot { width: 2vh;   height: 2vh;   margin-right: 0.8vw; }
 .weather        .dot { width: 1.4vh; height: 1.4vh; }
 
+/* --- View switcher (bottom row of view chips) --- */
+
+.view-switcher {
+  display: flex;
+  gap: 1.5vw;
+  margin-top: 2.5vh;
+  padding-top: 2vh;
+  border-top: 1px solid var(--rule);
+  flex-wrap: wrap;
+}
+
+.view-switcher[hidden] { display: none; }
+
+.view-chip {
+  flex: 1;
+  min-width: 0;
+  padding: 1.6vh 2vw;
+  border: 1px solid var(--rule);
+  border-radius: 1.2vh;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 2.2vh;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms, color 120ms, border-color 120ms;
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.view-chip:hover {
+  border-color: var(--muted);
+}
+
+.view-chip.active {
+  background: var(--fg);
+  border-color: var(--fg);
+  color: var(--bg);
+}
+
+/* Tiny "•" before the label, replaced by an SVG geo pin when this view is
+ * the auto-selected one (i.e. user is geographically near it). */
+.view-chip-marker {
+  width: 1.8vh;
+  height: 1.8vh;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.view-chip.active .view-chip-marker {
+  opacity: 1;
+}
+
+.view-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* --- Footer --- */
 
 footer {
@@ -397,7 +459,16 @@ footer {
   font-size: 1.5vh;
   color: var(--hint);
   letter-spacing: 0.04em;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1vw;
 }
+
+.updated-source {
+  color: var(--rule);
+}
+
+.updated-source[hidden] { display: none; }
 
 footer.stale {
   color: var(--warn);
@@ -558,4 +629,21 @@ footer.stale {
 
   /* FOOTER */
   footer { font-size: 1.6vh; }
+
+  /* VIEW SWITCHER on phone — smaller chips, tighter spacing. */
+  .view-switcher {
+    margin-top: 1.5vh;
+    padding-top: 1.2vh;
+    gap: 2vw;
+  }
+  .view-chip {
+    padding: 1.2vh 3vw;
+    font-size: 1.9vh;
+    border-radius: 1vh;
+    gap: 2vw;
+  }
+  .view-chip-marker {
+    width: 1.6vh;
+    height: 1.6vh;
+  }
 }

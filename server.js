@@ -6,11 +6,21 @@ const express = require('express');
 const { loadGtfs, getNextDepartures, findStopsByName, normalizeStopName } = require('./lib/gtfs');
 const weather = require('./lib/weather');
 const {
-  STOPS,
+  VIEWS,
+  DEFAULT_VIEW,
+  GEO_RADIUS_M,
+  MANUAL_OVERRIDE_MINUTES,
   GTFS_URL,
   GTFS_REFRESH_HOURS,
   DEPARTURES_PER_STOP,
 } = require('./lib/config');
+
+// Flat list of every stop config across all views — used by GTFS-loading
+// log and the diagnose endpoint, both of which iterate every stop regardless
+// of which view it belongs to.
+const ALL_STOPS = Object.values(VIEWS).flatMap(v =>
+  v.stops.map(s => ({ ...s, _viewId: v.id }))
+);
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -32,7 +42,7 @@ async function refreshGtfs() {
     lastSuccessfulLoad = idx.loadedAt;
 
     console.log('[gtfs] Loaded:', idx.counts);
-    for (const s of STOPS) {
+    for (const s of ALL_STOPS) {
       const stopMatch = findStopsByName(idx, s.stopName);
       const platforms = stopMatch.stops.length;
       const routes = (idx.routesByShortName.get(s.routeShortName) || []).length;
@@ -73,7 +83,7 @@ async function refreshGtfs() {
         : stopMatch.strategy === 'exact' ? '' : ' (NOT FOUND)';
 
       console.log(
-        `[gtfs] config "${s.id}" → stop "${s.stopName}"${matchedNote}: ` +
+        `[gtfs] [${s._viewId}] "${s.id}" → stop "${s.stopName}"${matchedNote}: ` +
         `${platforms} platform(s); route ${s.routeShortName}: ${routes} match(es); ` +
         `trips matching direction filter: ${tripsThroughDirection}.`
       );
@@ -107,14 +117,21 @@ async function refreshGtfs() {
 // only knows about /api/departures.
 // ---------------------------------------------------------------------------
 
-async function getDepartures() {
+async function getDepartures(viewId) {
   const wx = weather.getCached();
+  const view = VIEWS[viewId] || VIEWS[DEFAULT_VIEW];
 
   if (!gtfsIndex) {
-    return { ok: false, error: 'gtfs_not_loaded', stops: [], weather: wx };
+    return {
+      ok: false,
+      error: 'gtfs_not_loaded',
+      view: { id: view.id, label: view.label },
+      stops: [],
+      weather: wx,
+    };
   }
 
-  const stops = STOPS.map(s => ({
+  const stops = view.stops.map(s => ({
     id: s.id,
     label: s.label,
     stopName: s.stopName,
@@ -126,8 +143,24 @@ async function getDepartures() {
     source: 'gtfs',
     gtfsLoadedAt: gtfsIndex.loadedAt,
     serverTime: new Date().toISOString(),
+    view: { id: view.id, label: view.label },
     stops,
     weather: wx,
+  };
+}
+
+// View metadata for the frontend's switcher and geolocation logic. Strips
+// any backend-only fields (none currently, but the boundary is explicit).
+function getViewsForClient() {
+  return {
+    views: Object.values(VIEWS).map(v => ({
+      id: v.id,
+      label: v.label,
+      anchor: v.anchor,
+    })),
+    defaultView: DEFAULT_VIEW,
+    geoRadiusM: GEO_RADIUS_M,
+    manualOverrideMinutes: MANUAL_OVERRIDE_MINUTES,
   };
 }
 
@@ -135,14 +168,26 @@ async function getDepartures() {
 // Routes
 // ---------------------------------------------------------------------------
 
-app.get('/api/departures', async (_req, res) => {
+app.get('/api/departures', async (req, res) => {
   try {
-    const data = await getDepartures();
+    // Default to DEFAULT_VIEW if the param is missing or unrecognised, so a
+    // stale bookmark or a typo never returns 404 — the user just sees the
+    // home view and can switch from the bottom row.
+    const viewId = VIEWS[req.query.view] ? req.query.view : DEFAULT_VIEW;
+    const data = await getDepartures(viewId);
     res.set('Cache-Control', 'no-store');
     res.json(data);
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
+});
+
+// List of available views + geolocation parameters. The client fetches this
+// once on boot and uses it to render the bottom switcher and run distance
+// math against each view's anchor.
+app.get('/api/views', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(getViewsForClient());
 });
 
 app.get('/api/health', (_req, res) => {
@@ -198,20 +243,27 @@ app.get('/api/debug/headsigns', (req, res) => {
 // platforms, how their headsigns and downstream stops look, and how many of
 // them pass the current direction filter. text/plain for trivial sharing.
 //
-// Open in browser: /api/diagnose
-app.get('/api/diagnose', (_req, res) => {
+// Open in browser: /api/diagnose             (all views)
+//                  /api/diagnose?view=centrum (one view)
+app.get('/api/diagnose', (req, res) => {
   res.set('Content-Type', 'text/plain; charset=utf-8');
   if (!gtfsIndex) return res.send('GTFS not loaded.\nlastError: ' + lastError);
+
+  const filter = req.query.view;
+  const stops = filter && VIEWS[filter]
+    ? VIEWS[filter].stops.map(s => ({ ...s, _viewId: filter }))
+    : ALL_STOPS;
 
   const lines = [];
   lines.push('=== TRAM-TERMINAL DIAGNOSE ===');
   lines.push(`server time: ${new Date().toISOString()}`);
   lines.push(`gtfs loaded at: ${gtfsIndex.loadedAt.toISOString()}`);
   lines.push(`gtfs counts: ${JSON.stringify(gtfsIndex.counts)}`);
+  lines.push(`views in scope: ${filter || '(all)'}`);
   lines.push('');
 
-  for (const s of STOPS) {
-    lines.push(`--- ${s.id} ---`);
+  for (const s of stops) {
+    lines.push(`--- [${s._viewId}] ${s.id} ---`);
     lines.push(`config: ${JSON.stringify(s)}`);
 
     // 1. Stop lookup.

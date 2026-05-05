@@ -316,12 +316,222 @@ function renderAlert() {
 }
 
 // ---------------------------------------------------------------------------
+// View state — which view is being shown, manual override, geolocation
+// ---------------------------------------------------------------------------
+
+const SWITCHER_EL = document.getElementById('view-switcher');
+const SOURCE_EL = document.getElementById('updated-source');
+const STORAGE_KEY = 'tt:view-state';
+
+// State persisted across reloads in localStorage. Keeping it persistent
+// means the user's manual override survives an iPhone re-open, and the last
+// known view doesn't briefly flicker before geolocation kicks in.
+const state = {
+  views: [],                 // [{ id, label, anchor }]
+  config: null,              // { geoRadiusM, manualOverrideMinutes, defaultView }
+  activeViewId: null,        // currently displayed
+  manualOverrideUntil: 0,    // epoch ms; geo logic skipped while > now
+  geoNearbyViewId: null,     // last view geo decided is "nearby" (or null)
+  geoStatus: 'idle',         // 'idle' | 'requesting' | 'granted' | 'denied' | 'unsupported'
+};
+
+function loadPersistedState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (saved.activeViewId) state.activeViewId = saved.activeViewId;
+    if (saved.manualOverrideUntil) state.manualOverrideUntil = saved.manualOverrideUntil;
+  } catch (err) {
+    console.warn('Failed to load persisted state:', err);
+  }
+}
+
+function persistState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      activeViewId: state.activeViewId,
+      manualOverrideUntil: state.manualOverrideUntil,
+    }));
+  } catch (_) { /* private mode etc. — ignore */ }
+}
+
+// Haversine distance between two {lat, lng} coords, in metres.
+function geoDistanceM(a, b) {
+  const R = 6_371_000;
+  const toRad = (d) => d * Math.PI / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const x = Math.sin(dLat / 2) ** 2
+          + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  return 2 * R * Math.asin(Math.sqrt(x));
+}
+
+// Pick the active view by:
+//   1. Honour manual override if it's still within its window.
+//   2. Snap to whichever view has its anchor within geoRadiusM of the user
+//      (closest wins on ties).
+//   3. Keep current selection (or fall back to defaultView).
+function recomputeActiveView() {
+  const now = Date.now();
+
+  // 1. Manual override still hot? Don't touch.
+  if (state.manualOverrideUntil > now) return state.activeViewId;
+
+  // 2. Geolocation says we're near a configured view's anchor?
+  if (state.geoNearbyViewId) {
+    if (state.activeViewId !== state.geoNearbyViewId) {
+      state.activeViewId = state.geoNearbyViewId;
+      persistState();
+    }
+    return state.activeViewId;
+  }
+
+  // 3. No signal — keep what we had (or fall back).
+  if (!state.activeViewId) {
+    state.activeViewId = state.config?.defaultView || (state.views[0] && state.views[0].id);
+    persistState();
+  }
+  return state.activeViewId;
+}
+
+function setManualView(viewId) {
+  if (!state.views.find(v => v.id === viewId)) return;
+  state.activeViewId = viewId;
+  state.manualOverrideUntil = Date.now() + (state.config.manualOverrideMinutes * 60 * 1000);
+  persistState();
+  renderSwitcher();
+  fetchDepartures();
+}
+
+// ---------------------------------------------------------------------------
+// View switcher (bottom-of-screen chips)
+// ---------------------------------------------------------------------------
+
+function renderSwitcher() {
+  if (!state.views.length) {
+    SWITCHER_EL.hidden = true;
+    return;
+  }
+  SWITCHER_EL.hidden = false;
+  SWITCHER_EL.replaceChildren(...state.views.map(v => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'view-chip';
+    btn.dataset.viewId = v.id;
+    if (v.id === state.activeViewId) btn.classList.add('active');
+
+    // Marker — geo pin if this view is the geo-detected one, else a dot.
+    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    marker.setAttribute('class', 'view-chip-marker');
+    marker.setAttribute('viewBox', '0 0 16 16');
+    marker.setAttribute('aria-hidden', 'true');
+    if (v.id === state.geoNearbyViewId) {
+      // Pin shape.
+      marker.innerHTML =
+        '<path d="M8 1 C5 1 3 3 3 6 C3 10 8 15 8 15 C8 15 13 10 13 6 C13 3 11 1 8 1 Z" ' +
+        'fill="none" stroke="currentColor" stroke-width="1.4"/>' +
+        '<circle cx="8" cy="6" r="1.6" fill="currentColor"/>';
+    } else {
+      marker.innerHTML = '<circle cx="8" cy="8" r="2.5" fill="currentColor"/>';
+    }
+    btn.appendChild(marker);
+
+    const label = document.createElement('span');
+    label.className = 'view-chip-label';
+    label.textContent = v.label;
+    btn.appendChild(label);
+
+    btn.addEventListener('click', () => setManualView(v.id));
+    return btn;
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Geolocation — auto-switch the view based on distance from anchor
+// ---------------------------------------------------------------------------
+
+function startGeolocation() {
+  if (!navigator.geolocation) {
+    state.geoStatus = 'unsupported';
+    return;
+  }
+  state.geoStatus = 'requesting';
+
+  // watchPosition keeps us updated as the user moves; on a desk it's quiet,
+  // and on the way to/from a stop it'll fire as the user crosses the radius.
+  navigator.geolocation.watchPosition(
+    (pos) => {
+      state.geoStatus = 'granted';
+      const userLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      const radius = state.config?.geoRadiusM || 500;
+
+      // Pick closest view whose anchor is within radius. If none qualify,
+      // null (no geo signal) — current selection survives.
+      let best = null;
+      let bestDist = Infinity;
+      for (const v of state.views) {
+        const d = geoDistanceM(userLoc, v.anchor);
+        if (d <= radius && d < bestDist) {
+          best = v;
+          bestDist = d;
+        }
+      }
+      const newId = best ? best.id : null;
+      if (newId !== state.geoNearbyViewId) {
+        state.geoNearbyViewId = newId;
+        const prev = state.activeViewId;
+        recomputeActiveView();
+        renderSwitcher();
+        if (state.activeViewId !== prev) fetchDepartures();
+      }
+    },
+    (err) => {
+      state.geoStatus = err.code === err.PERMISSION_DENIED ? 'denied' : 'unsupported';
+      console.warn('Geolocation error:', err.message);
+      // No-op for the UI: state.geoNearbyViewId stays null, active view
+      // falls back to manual / default.
+    },
+    {
+      enableHighAccuracy: false,  // city-block accuracy is plenty
+      maximumAge: 60_000,         // 1 min cache fine
+      timeout: 15_000,
+    }
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Bootstrapping
+// ---------------------------------------------------------------------------
+
+async function loadViewsConfig() {
+  const res = await fetch('/api/views', { cache: 'no-store' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const cfg = await res.json();
+  state.views = cfg.views;
+  state.config = {
+    defaultView: cfg.defaultView,
+    geoRadiusM: cfg.geoRadiusM,
+    manualOverrideMinutes: cfg.manualOverrideMinutes,
+  };
+  // Pin default view if nothing was persisted.
+  if (!state.activeViewId) state.activeViewId = cfg.defaultView;
+}
+
+// ---------------------------------------------------------------------------
 // Fetch
 // ---------------------------------------------------------------------------
 
 async function fetchDepartures() {
+  // Re-evaluate which view is active before each fetch (e.g. geo decided
+  // mid-cycle, or override expired) so the UI never lags behind state.
+  recomputeActiveView();
+
   try {
-    const res = await fetch('/api/departures', { cache: 'no-store' });
+    const url = `/api/departures?view=${encodeURIComponent(state.activeViewId)}`;
+    const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
@@ -334,6 +544,22 @@ async function fetchDepartures() {
       lastFetchError = null;
       FOOTER_EL.classList.remove('stale');
     }
+
+    // Update footer source line — shows whether geo or manual is driving.
+    if (SOURCE_EL) {
+      const now = Date.now();
+      if (state.manualOverrideUntil > now) {
+        const minLeft = Math.ceil((state.manualOverrideUntil - now) / 60_000);
+        SOURCE_EL.textContent = `· ručně (${minLeft} min)`;
+        SOURCE_EL.hidden = false;
+      } else if (state.geoNearbyViewId) {
+        SOURCE_EL.textContent = '· auto';
+        SOURCE_EL.hidden = false;
+      } else {
+        SOURCE_EL.hidden = true;
+      }
+    }
+
     tickClock();
   } catch (err) {
     console.error('Fetch failed:', err);
@@ -342,15 +568,36 @@ async function fetchDepartures() {
   }
 }
 
-// Initial + periodic
-renderAlert();
-fetchDepartures();
-setInterval(fetchDepartures, REFRESH_MS);
+// ---------------------------------------------------------------------------
+// Boot sequence
+// ---------------------------------------------------------------------------
 
-// Re-fetch when iPad Safari resumes the tab after a sleep / app switch.
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') fetchDepartures();
-});
+(async () => {
+  loadPersistedState();
+  renderAlert();
+
+  try {
+    await loadViewsConfig();
+  } catch (err) {
+    console.error('Failed to load views config:', err);
+    // Without view metadata we can still call the API (it'll return the
+    // default view), but no switcher and no geo.
+  }
+
+  renderSwitcher();
+  fetchDepartures();
+  startGeolocation();
+
+  setInterval(fetchDepartures, REFRESH_MS);
+  setInterval(renderSwitcher, 60_000); // refresh "ručně (N min)" countdown text
+
+  // Re-fetch when Safari resumes the tab after a sleep / app switch.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') fetchDepartures();
+  });
+
+  scheduleMinuteRollover();
+})();
 
 // Minute-rollover smoothing: refresh just after each new minute starts so the
 // big number ticks down in sync with reality even if next poll is 19s away.
@@ -365,4 +612,3 @@ function scheduleMinuteRollover() {
     scheduleMinuteRollover();
   }, ms);
 }
-scheduleMinuteRollover();
