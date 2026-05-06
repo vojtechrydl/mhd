@@ -1,3 +1,4 @@
+
 :root {
   --bg: #F2EBD9;
   --fg: #0A0A0A;
@@ -327,15 +328,30 @@ header {
   flex-direction: column;
   gap: 1vh;
   min-width: 0;
+  /* Don't let long AQI labels (e.g. "extrémně špatná čistota vzduchu") push
+   * the weather row vertically and overlap the switcher below it. */
+  overflow: hidden;
 }
 
 .weather-row {
   display: flex;
   align-items: center;
   gap: 1.5vw;
+  min-width: 0;
 }
 
 .weather-row[hidden] { display: none; }
+
+/* Each text item in the weather rows truncates with ellipsis instead of
+ * wrapping, keeping the row exactly one line tall. */
+.weather-row > * {
+  min-width: 0;
+}
+.wx-desc, .wx-aqi-text, .wx-fcast {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .wx-temp {
   font-family: var(--font-mono);
@@ -526,7 +542,12 @@ footer.stale {
     height: 7vh;
   }
   .stop-primary .stop-label {
-    font-size: 2.6vh;
+    font-size: 2.1vh;
+    /* Keep on one line — the "Tram N: A → B" pattern is consistently long
+     * but predictable in width, so we trade tiny font for unwrapped clarity. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .stop-primary .next-num {
     /* Cap at min(13vh, 22vw) so the number scales with whichever dimension
@@ -574,8 +595,10 @@ footer.stale {
     gap: 0.4vh;
   }
   .stop-secondary .stop-label {
-    font-size: 2.3vh;
-    white-space: normal;
+    font-size: 2vh;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .stop-secondary .next-num {
     font-size: 4.5vh;
@@ -603,7 +626,8 @@ footer.stale {
     height: 4vh;
   }
   .weather-row {
-    flex-wrap: wrap;
+    /* No flex-wrap — single-line + ellipsis prevents the AQI string from
+     * pushing the row onto two lines and overlapping the switcher. */
     gap: 1.5vw;
   }
   .wx-temp { font-size: 3.2vh; }
@@ -637,10 +661,13 @@ footer.stale {
     gap: 2vw;
   }
   .view-chip {
-    padding: 1.2vh 3vw;
+    padding: 1.2vh 2vw;
     font-size: 1.9vh;
     border-radius: 1vh;
-    gap: 2vw;
+    gap: 1.5vw;
+    /* Centre the (short) label in its half of the row — looks better when
+     * each chip is "Doma" or "Centrum" with a marker. */
+    justify-content: center;
   }
   .view-chip-marker {
     width: 1.6vh;
