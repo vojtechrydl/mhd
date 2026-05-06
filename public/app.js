@@ -279,7 +279,9 @@ function renderForecast(h) {
   } else if (h.precipMaxPct === 0) {
     rain = 'bez srážek';
   } else {
-    rain = `max srážky ${h.precipMaxPct} %`;
+    // The Open-Meteo `precipitation_probability` is exactly that — a chance,
+    // not an amount. Say it like a person would.
+    rain = `až ${h.precipMaxPct} % šance srážek`;
   }
 
   textEl.textContent = rain
